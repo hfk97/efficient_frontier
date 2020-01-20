@@ -4,6 +4,15 @@ import math
 import subprocess
 import importlib
 import sys
+import pandas as pd
+
+class portfolio:
+    def __init__(self, weights, std, mu):
+        self.weights = weights
+        self.std = std
+        self.mu = mu
+
+
 
 # function that imports a library if it is installed, else installs it and then imports it
 def getpack(package):
@@ -28,6 +37,8 @@ def sigma_p(weights,cov_matr):
 
 def mu_check(weights,mus,mu_target):
     return mu_target-sum([weights[i]*mus[i] for i in range(len(weights))])
+
+
 
 
 def optimal_portfolio(returns,mu_target,option=0):
@@ -59,3 +70,18 @@ def optimal_portfolio(returns,mu_target,option=0):
     res = opt.minimize(sigma_p, np.array([1.0/n] * n), method='SLSQP', args=(cov_matrix), bounds=bnds, constraints=cons)
 
     return res
+
+#ToDo implement portfolio class
+
+#ToDo implement maximum Sharpe and Minimum volatility
+
+def min_var_portfolio(returns):
+    cov_matrix = np.cov(returns)
+
+    return
+
+
+def tangency_portfolio(returns):
+    cov_matrix = np.cov(returns)
+
+    return
