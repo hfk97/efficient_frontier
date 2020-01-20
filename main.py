@@ -41,11 +41,8 @@ def mu_check(weights,mus,mu_target):
 
 
 
-def optimal_portfolio(returns,mu_target,option=0):
-    n = len(returns)
-
-    mus = [np.mean(i) for i in returns]
-    cov_matrix = np.cov(returns)
+def optimal_portfolio(mus, cov_matrix,mu_target,option=0):
+    n = len(mus)
 
     # constraints
     # sum of all weights must be zero and portfolio mu must be target mu
@@ -70,22 +67,28 @@ def optimal_portfolio(returns,mu_target,option=0):
     return portfolio(res.x, res.fun, sum([a*b for a,b in zip(res.x,mus)]))
 
 
-def min_var_portfolio(returns):
-    n=len(returns)
-    mus = [np.mean(i) for i in returns]
-    inv_cov_matrix = np.linalg.inv(np.cov(returns))
+def min_var_portfolio(mus, cov_matrix,):
+    n=len(mus)
+    inv_cov_matrix = np.linalg.inv(cov_matrix)
     sig = math.sqrt(1.0 / inv_cov_matrix.sum())
     weights = np.matmul(inv_cov_matrix, np.array([1]*n)) / sum(np.matmul(inv_cov_matrix, np.array([1]*n)))
 
     return portfolio(weights, sig, sum([a*b for a,b in zip(weights,mus)]))
 
 
-def tangency_portfolio(returns, rf):
-    mus = [np.mean(i) for i in returns]
+def tangency_portfolio(mus, cov_matrix, rf):
     alph = [i-rf for i in mus]
-    inv_cov_matrix = np.linalg.inv(np.cov(returns))
+    inv_cov_matrix = np.linalg.inv(cov_matrix)
 
     weights = np.matmul(inv_cov_matrix, alph) / sum(np.matmul(inv_cov_matrix, alph))
-    sig = sigma_p(weights,np.cov(returns))
+    sig = sigma_p(weights,cov_matrix)
 
     return portfolio(weights, sig, sum([a * b for a, b in zip(weights, mus)]))
+
+def efficient_frontier(mus, cov_matrix, r_range):
+    efficients = []
+    for ret in r_range:
+        efficients.append(optimal_portfolio(mus, cov_matrix, ret))
+    return efficients
+
+
