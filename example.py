@@ -149,25 +149,32 @@ def main():
         t.start()
 
         res = optimal_portfolio(returns, mu_target, option)
+        min_var = min_var_portfolio(returns)
+        # ToDo change units fix rf tangency
+        # get risk-free rate (i.e. 3-month t-bill)
+        rf = yf.Ticker("^IRX").history(period="1y").Close[-1] / 100
+        rf = (1 + rf) ** (1 / 60) - 1
+        tang_port = tangency_portfolio(returns,rf)
 
         done_dot = True
         time.sleep(0.3)
         print("\n")
 
-        opt_weights = res.x
-        opt_ret = sum([a*b for a,b in zip(opt_weights,mus)])
-        opt_std = res.fun
-
         # load weights result into df
-        results = pd.DataFrame(list(zip(tickers, mus, [np.std(i) for i in returns], [round(i,5) for i in opt_weights])),
+        results = pd.DataFrame(list(zip(tickers, mus, [np.std(i) for i in returns], [round(i,5) for i in res.weights])),
                                columns=["Ticker", "expected return", "standard dev", "weights"])
 
-        print(f"The risk-minimizing portfolio for your selection has a standard deviation of {round(opt_std,5)}, "
-              f"an expected return of {round(opt_ret,5)} and the following weights on the securities:")
+        print(f"The risk-minimizing portfolio for your selection has a standard deviation of {round(res.std,5)}, "
+              f"an expected return of {round(res.mu,5)} and the following weights on the securities:")
 
         # make sure all rows will be displayed
         pd.set_option('display.max_rows', results.shape[0] + 1)
         print(results)
+
+        if min_var.mu > res.mu:
+            print(f"\nAttention: though this portfolio minimizes the risk for your chosen return, the minimal risk "
+                  f"portfolio achieves a higher mean return ({round(min_var.mu,5)}) with a standard deviation of "
+                  f"{round(min_var.std,5)}. The weights on the minimal risk portfolio are: {min_var.weights}\n")
 
         #ToDo improve Visualization (add line)
         if 'y' in input("Would you like to see this result on the efficient frontier? (y/n)   "):
@@ -180,16 +187,21 @@ def main():
                 rand_mus.append(sum([i[j]*mus[j] for j in range(len(tickers))]))
                 rand_std.append(sigma_p(i,cov_m))
 
-            plt.scatter(rand_std,rand_mus, marker='o', s=10, alpha=0.3)
+            del rand_ports
+
+            plt.scatter(rand_std, rand_mus, c= "steelblue", marker='o', s=10, alpha=0.3)
             plt.title('Portfolio Optimization based on Efficient Frontier')
             plt.xlabel('Standard deviation')
             plt.ylabel('Expected return')
-            plt.ylim(bottom=min(rand_mus)-.1*abs(min(rand_mus)),top=max(rand_mus)+.1*abs(max(rand_mus)))
 
-            plt.scatter(opt_std,opt_ret, marker='x', s=20, label="Your portfolio")
+            plt.scatter(res.std,res.mu, marker='*', s=25, c='black', label="Your portfolio")
+            plt.scatter(min_var.std, min_var.mu, marker='D', s=25, c='darkgreen', label="Minimum variance")
+            plt.scatter(tang_port.std, tang_port.mu, marker='^', s=25, c='gold', label="Tangency portfolio")
             plt.legend()
 
             plt.show()
+
+            del rand_mus,rand_std
 
             print()
 
@@ -206,5 +218,3 @@ def main():
 
 
 main()
-
-#todo unit thing (returns)
