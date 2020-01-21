@@ -96,7 +96,7 @@ def main():
     global done_dot
 
     print("Welcome, this is a cmd-line interface tool to calculate minimum risk portfolio weights for a given set of "
-          "stocks and a selected expected return.")
+          "stocks and a selected expected return  (daily).")
     print("In other words, this script calculated the portfolio weights and standard deviation for a portfolio at point"
           " mu_p of the efficient frontier.")
     print("If you are unfamiliar with Moskowitz's Efficient Frontier please read the README.md file.\n")
@@ -136,6 +136,12 @@ def main():
         mus = [np.mean(i) for i in returns]
         cov_m = np.cov(returns)
 
+        # load weights result into df
+        results = pd.DataFrame(list(zip(tickers, mus, [np.std(i) for i in returns])),
+                               columns=["Ticker", "expected return", "standard dev"])
+        pd.set_option('display.max_rows', results.shape[0] + 1)
+        print(results)
+
         # get target return
         mu_target = float(input(f"Please enter your target return (e.g.: 5% as 0.05):"))
 
@@ -144,44 +150,44 @@ def main():
         # starting loading... thread
         t.start()
 
+        # get risk-free rate e.g. 3-month t-bill
+        # rf = yf.Ticker("^IRX").history(period="1y").Close[-1] / 100
+        # rf = (1 + rf) ** (1 / 60) - 1
+        rf = 0.0
+
         # risk minimizing portfolio for target return (or max possible return)
-        res = optimal_portfolio(mus, cov_m, mu_target, option)
+        res = optimal_portfolio(mus, cov_m, mu_target, rf, option)
 
         # minimum variance portfolio
-        min_var = min_var_portfolio(mus, cov_m,)
+        min_var = min_var_portfolio(mus, cov_m, rf)
 
         # calculate some portfolios on the frontier for visualization
-        r_range = np.linspace(min_var.mu, max(mus), 50)
-        efficient_fron = efficient_frontier(mus,cov_m,r_range)
+        r_range = np.linspace(min_var.mu, max(mus), 75)
+        efficient_fron = efficient_frontier(mus, cov_m, rf, r_range)
         del r_range
 
 
-        # ToDo change units fix rf tangency
-        # get risk-free rate (i.e. 3-month t-bill)
-        rf = yf.Ticker("^IRX").history(period="1y").Close[-1] / 100
-        rf = (1 + rf) ** (1 / 60) - 1
-        # calculate tangency portfolio
-        tang_port = tangency_portfolio(mus, cov_m,rf)
-        del rf
+        # The code below could be used to calculate the tangency portfolio. Since this programm works with daily returns,
+        # and I could not find a satisfactory solution for a daily risk free rate, it is not implemented.
+        # tang_port = tangency_portfolio(mus, cov_m,rf)
 
         # end loading '...'
         done_dot = True
         time.sleep(0.3)
         print("\n")
 
-        # load weights result into df
-        results = pd.DataFrame(list(zip(tickers, mus, [np.std(i) for i in returns], [round(i,5) for i in res.weights])),
-                               columns=["Ticker", "expected return", "standard dev", "weights"])
-
         # display results and additional information
         print(f"The risk-minimizing portfolio for your selection has a standard deviation of {round(res.std,5)}, "
               f"an expected return of {round(res.mu,5)} and the following weights on the securities:")
 
         # make sure all rows will be displayed
+
+        results["weights"] = [round(i, 5) for i in res.weights]
         pd.set_option('display.max_rows', results.shape[0] + 1)
         print(results)
 
-        if mu_target != res.mu:
+        # if target mu and real mu differ more than 1 percent
+        if abs(mu_target  - res.mu) >= mu_target*0.01:
             print(f"\nYour target return of {mu_target} could not be reached. Try to integrate shortselling.")
 
         if min_var.mu > res.mu:
@@ -194,20 +200,28 @@ def main():
             # random portfolios for scatter plot
             rand_mus = []
             rand_std = []
+            rand_sr = []
 
-            for i in random_weights(len(tickers), 25000):
-                rand_mus.append(sum([i[j]*mus[j] for j in range(len(tickers))]))
-                rand_std.append(sigma_p(i,cov_m))
+            for i in random_weights(len(tickers), 20000):
+                r_mu = sum([i[j] * mus[j] for j in range(len(tickers))])
+                rand_mus.append(r_mu)
+                r_sig = sigma_p(i,cov_m)
+                rand_std.append(r_sig)
+                rand_sr.append((r_mu-rf)/r_sig)
 
-            plt.scatter(rand_std, rand_mus, c= "steelblue", marker='o', s=10, alpha=0.3)
+            del r_sig
+            del r_mu
+
+            plt.scatter(rand_std, rand_mus, c=rand_sr, cmap='YlGnBu', marker='o', s=10, alpha=0.2)
             plt.title('Portfolio Optimization based on Efficient Frontier')
             plt.xlabel('Standard deviation')
             plt.ylabel('Expected return')
+            plt.colorbar().set_label('Sharpe ratio')
 
             # chosen portfolio, minimum variance portfolio, tangency portfolio and efficient frontier
-            plt.scatter(res.std,res.mu, marker='*', s=25, c='black', label="Your portfolio")
+            plt.scatter(res.std,res.mu, marker='*', s=25, c='red', label="Your portfolio")
             plt.scatter(min_var.std, min_var.mu, marker='D', s=25, c='darkgreen', label="Minimum variance")
-            #plt.scatter(tang_port.std, tang_port.mu, marker='^', s=25, c='gold', label="Tangency portfolio")
+            # plt.scatter(tang_port.std, tang_port.mu, marker='^', s=25, c='gold', label="Tangency portfolio")
             plt.plot([p.std for p in efficient_fron], [p.mu for p in efficient_fron], linestyle='-.', color='black',
                     label='efficient frontier')
             plt.legend()

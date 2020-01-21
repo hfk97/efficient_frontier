@@ -7,10 +7,11 @@ import sys
 import pandas as pd
 
 class portfolio:
-    def __init__(self, weights, std, mu):
+    def __init__(self, weights, std, mu, sr):
         self.weights = weights
         self.std = std
         self.mu = mu
+        self.sr = sr
 
 
 
@@ -40,8 +41,8 @@ def mu_check(weights,mus,mu_target):
 
 
 
-
-def optimal_portfolio(mus, cov_matrix,mu_target,option=0):
+# ToDo check tangency
+def optimal_portfolio(mus, cov_matrix, mu_target, rf, option=0):
     n = len(mus)
 
     # constraints
@@ -63,17 +64,19 @@ def optimal_portfolio(mus, cov_matrix,mu_target,option=0):
         return
 
     res = opt.minimize(sigma_p, np.array([1.0/n] * n), method='SLSQP', args=(cov_matrix), bounds=bnds, constraints=cons)
+    port_ret = sum([a*b for a,b in zip(res.x,mus)])
 
-    return portfolio(res.x, res.fun, sum([a*b for a,b in zip(res.x,mus)]))
+    return portfolio(res.x, res.fun, port_ret,(port_ret - rf) / res.fun)
 
 
-def min_var_portfolio(mus, cov_matrix,):
+def min_var_portfolio(mus, cov_matrix, rf):
     n=len(mus)
     inv_cov_matrix = np.linalg.inv(cov_matrix)
     sig = math.sqrt(1.0 / inv_cov_matrix.sum())
     weights = np.matmul(inv_cov_matrix, np.array([1]*n)) / sum(np.matmul(inv_cov_matrix, np.array([1]*n)))
+    port_ret = sum([a*b for a,b in zip(weights,mus)])
 
-    return portfolio(weights, sig, sum([a*b for a,b in zip(weights,mus)]))
+    return portfolio(weights, sig, port_ret,(port_ret - rf) / sig)
 
 
 def tangency_portfolio(mus, cov_matrix, rf):
@@ -82,13 +85,12 @@ def tangency_portfolio(mus, cov_matrix, rf):
 
     weights = np.matmul(inv_cov_matrix, alph) / sum(np.matmul(inv_cov_matrix, alph))
     sig = sigma_p(weights,cov_matrix)
+    port_ret = sum([a*b for a,b in zip(weights,mus)])
 
-    return portfolio(weights, sig, sum([a * b for a, b in zip(weights, mus)]))
+    return portfolio(weights, sig, port_ret,(port_ret - rf) / sig)
 
-def efficient_frontier(mus, cov_matrix, r_range):
+def efficient_frontier(mus, cov_matrix, rf, r_range):
     efficients = []
     for ret in r_range:
-        efficients.append(optimal_portfolio(mus, cov_matrix, ret))
+        efficients.append(optimal_portfolio(mus, cov_matrix, ret, rf))
     return efficients
-
-
