@@ -30,7 +30,7 @@ def getpack(package):
         # import package
 
 # import necessary packages
-from main import *
+from eff_fron import *
 pd = getpack("pandas")
 yf = getpack("yfinance")
 bs=getpack("bs4")
