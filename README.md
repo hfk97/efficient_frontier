@@ -11,7 +11,7 @@
 <p align="center"><img src="./img/constraints.png" alt="constraints" align="middle" /></p>
 
 ### The code:
-- main.py contains all functions needed
+- eff_fron.py contains all functions needed
 - example.py allows the user to run simulations, based on daily returns, using all SP500 stocks, a sample of them, or a custom list of tickers.
 Optimal weights are printed and, if applicable, more hints are given. The results can also be visualized, see below. example.py can easily be modified to work with monthly returns and calculate the tangency portfolio.
 

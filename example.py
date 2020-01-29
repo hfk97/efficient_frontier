@@ -2,8 +2,10 @@ import threading
 import itertools
 import time
 
-#this will later be used to add a loading '...' to some text
+# this will later be used to add a loading '...' to some text
 done_dot=False
+
+
 def dotdotdot(text):
     for c in itertools.cycle(['.', '..', '...','']):
         if done_dot:
@@ -14,31 +16,32 @@ def dotdotdot(text):
     sys.stdout.write('\nDone!')
 
 
-#needed for the next function
+# needed for the next function
 import subprocess
 import importlib
+
 
 # function that imports a library if it is installed, else installs it and then imports it
 def getpack(package):
     try:
-        return (importlib.import_module(package))
+        return importlib.import_module(package)
         # import package
     except ImportError:
         subprocess.call([sys.executable, "-m", "pip", "install", package],
-  stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return (importlib.import_module(package))
+                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return importlib.import_module(package)
         # import package
+
 
 # import necessary packages
 from eff_fron import *
 pd = getpack("pandas")
 yf = getpack("yfinance")
-bs=getpack("bs4")
-requests=getpack("requests")
+bs = getpack("bs4")
+requests = getpack("requests")
 plt = getpack("matplotlib.pyplot")
-
-# needed for random sample example
 import random
+
 
 # get the tickers of all stocks in the SP500
 def sp500_tickers():
@@ -48,10 +51,11 @@ def sp500_tickers():
     tickers = []
     for row in table.findAll('tr')[1:]:
         ticker = row.findAll('td')[0].text
-        ticker = ticker.replace("\n","")
+        ticker = ticker.replace("\n", "")
         tickers.append(ticker)
 
     return tickers
+
 
 # get the returns for a given list of tickers
 def get_returns(tickers):
@@ -79,16 +83,17 @@ def get_returns(tickers):
 
     print("\nReturns downloaded.")
     if len(insufficient) > 0:
-        print(f"The following tickers will be omitted because of insufficient data: {', '.join(insufficient)}.\nThis could be due to"
-          f" the company going public within the last year or no information being available on Yahoo finance.")
+        print(f"The following tickers will be omitted because of insufficient data: {', '.join(insufficient)}.\n"
+              f"This could be due to the company going public within the last year or no information being available on"
+              f" Yahoo finance.")
     print("\n")
 
     return returns
 
-# generate random portfolio weights for the random portfolios in the visualization
-def random_weights(n,k):
-    return np.random.dirichlet(np.ones(n),size=k)
 
+# generate random portfolio weights for the random portfolios in the visualization
+def random_weights(n, k):
+    return np.random.dirichlet(np.ones(n), size=k)
 
 
 def main():
@@ -100,7 +105,6 @@ def main():
     print("In other words, this script calculated the portfolio weights and standard deviation for a portfolio at point"
           " mu_p of the efficient frontier.")
     print("If you are unfamiliar with Moskowitz's Efficient Frontier please read the README.md file.\n")
-
 
     while True:
         done_dot = False
@@ -166,9 +170,8 @@ def main():
         efficient_fron = efficient_frontier(mus, cov_m, rf, r_range)
         del r_range
 
-
-        # The code below could be used to calculate the tangency portfolio. Since this programm works with daily returns,
-        # and I could not find a satisfactory solution for a daily risk free rate, it is not implemented.
+        # The code below could be used to calculate the tangency portfolio. Since this programm works with daily
+        # returns, and I could not find a satisfactory solution for a daily risk free rate, it is not implemented.
         # tang_port = tangency_portfolio(mus, cov_m,rf)
 
         # end loading '...'
@@ -187,7 +190,7 @@ def main():
         print(results)
 
         # if target mu and real mu differ more than 1 percent
-        if abs(mu_target  - res.mu) >= mu_target*0.01:
+        if abs(mu_target - res.mu) >= mu_target*0.01:
             print(f"\nYour target return of {mu_target} could not be reached. Try to integrate shortselling.")
 
         if min_var.mu > res.mu:
@@ -205,12 +208,9 @@ def main():
             for i in random_weights(len(tickers), 20000):
                 r_mu = sum([i[j] * mus[j] for j in range(len(tickers))])
                 rand_mus.append(r_mu)
-                r_sig = sigma_p(i,cov_m)
+                r_sig = sigma_p(i, cov_m)
                 rand_std.append(r_sig)
                 rand_sr.append((r_mu-rf)/r_sig)
-
-            del r_sig
-            del r_mu
 
             plt.scatter(rand_std, rand_mus, c=rand_sr, cmap='YlGnBu', marker='o', s=10, alpha=0.2)
             plt.title('Portfolio Optimization based on Efficient Frontier')
@@ -219,22 +219,21 @@ def main():
             plt.colorbar().set_label('Sharpe ratio')
 
             # chosen portfolio, minimum variance portfolio, tangency portfolio and efficient frontier
-            plt.scatter(res.std,res.mu, marker='*', s=25, c='red', label="Your portfolio")
+            plt.scatter(res.std, res.mu, marker='*', s=25, c='red', label="Your portfolio")
             plt.scatter(min_var.std, min_var.mu, marker='D', s=25, c='darkgreen', label="Minimum variance")
             # plt.scatter(tang_port.std, tang_port.mu, marker='^', s=25, c='gold', label="Tangency portfolio")
             plt.plot([p.std for p in efficient_fron], [p.mu for p in efficient_fron], linestyle='-.', color='black',
-                    label='efficient frontier')
+                     label='efficient frontier')
             plt.legend()
 
             plt.show()
 
-            del rand_mus,rand_std
+            del rand_mus, rand_std
 
         if 'n' in input("Do you want to run another simulation? (y/n)   "):
             break
 
     print("Thank you.\nGoodbye.")
-
 
 
 main()
