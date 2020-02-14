@@ -205,7 +205,7 @@ def main():
             rand_std = []
             rand_sr = []
 
-            for i in random_weights(len(tickers), 20000):
+            for i in random_weights(len(tickers), len(tickers)*4000):
                 r_mu = sum([i[j] * mus[j] for j in range(len(tickers))])
                 rand_mus.append(r_mu)
                 r_sig = sigma_p(i, cov_m)
@@ -224,6 +224,7 @@ def main():
             # plt.scatter(tang_port.std, tang_port.mu, marker='^', s=25, c='gold', label="Tangency portfolio")
             plt.plot([p.std for p in efficient_fron], [p.mu for p in efficient_fron], linestyle='-.', color='black',
                      label='efficient frontier')
+
             plt.legend()
 
             plt.show()
