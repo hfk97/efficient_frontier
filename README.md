@@ -1,4 +1,4 @@
-# Moskowitz's efficient frontier
+# Markowitz's efficient frontier
 
 ### The problem:
 
